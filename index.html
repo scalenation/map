@@ -3,21 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Les Coulisses du Théâtre — Restaurant Concierge Map</title>
+<title>Les Coulisses du Théâtre — Restaurant Map</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet rotation plugin -->
+<script src="https://cdn.jsdelivr.net/npm/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js"></script>
 <style>
   :root {
     --cream: #FAF7F2;
-    --ink: #1A1713;
-    --gold: #C9A84C;
+    --ink:   #1A1713;
+    --gold:  #C9A84C;
     --gold-light: #E8D5A3;
-    --zone-blue: #3B82F6;
-    --zone-green: #22C55E;
-    --zone-yellow: #EAB308;
-    --zone-red: #EF4444;
-    --zone-black: #374151;
     --hotel: #8B5CF6;
   }
 
@@ -27,213 +24,156 @@
     font-family: 'DM Sans', sans-serif;
     background: var(--cream);
     color: var(--ink);
-    min-height: 100vh;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 
-  /* HEADER */
+  /* ── PRINT STYLES ── */
+  @media print {
+    @page {
+      size: A4 landscape;
+      margin: 10mm;
+    }
+    body {
+      height: 100%;
+      overflow: visible;
+    }
+    .header {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    #map {
+      height: calc(100vh - 52px);
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .leaflet-control-zoom,
+    .leaflet-control-attribution {
+      display: none !important;
+    }
+  }
+
+  /* ── SLIM HEADER ── */
   .header {
     background: var(--ink);
     color: var(--cream);
-    padding: 22px 36px 18px;
+    padding: 10px 28px;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: space-between;
-    border-bottom: 3px solid var(--gold);
+    border-bottom: 2.5px solid var(--gold);
+    flex-shrink: 0;
+  }
+  .header-left {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
   }
   .header-left h1 {
     font-family: 'Playfair Display', serif;
-    font-size: 24px;
+    font-size: 18px;
     letter-spacing: 0.02em;
-    line-height: 1.2;
+    line-height: 1;
+    color: var(--gold);
   }
-  .header-left h1 em { font-style: italic; color: var(--gold-light); }
-  .header-left p {
-    font-size: 11px;
+  .header-left h1 em { font-style: normal; color: var(--gold); }
+  .header-left span {
+    font-size: 10px;
     font-weight: 300;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #9CA3AF;
-    margin-top: 3px;
+    color: #6B7280;
   }
   .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .header-address {
     text-align: right;
-    font-size: 11px;
-    color: #9CA3AF;
-    letter-spacing: 0.06em;
-  }
-  .header-right strong {
-    display: block;
-    color: var(--gold-light);
-    font-size: 12px;
-    font-weight: 500;
-    font-family: 'Playfair Display', serif;
-  }
-
-  /* LAYOUT */
-  .layout {
-    display: grid;
-    grid-template-columns: 320px 1fr;
-    height: calc(100vh - 88px);
-  }
-
-  /* SIDEBAR */
-  .sidebar {
-    background: #fff;
-    border-right: 1px solid #E5E0D8;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* Hotel card */
-  .hotel-card {
-    background: var(--ink);
-    color: var(--cream);
-    padding: 16px 18px;
-    border-bottom: 2px solid var(--gold);
-    display: flex;
-    align-items: center;
-    gap: 11px;
-  }
-  .hotel-dot {
-    width: 13px; height: 13px;
-    border-radius: 50%;
-    background: var(--hotel);
-    border: 2px solid #fff;
-    flex-shrink: 0;
-    box-shadow: 0 0 0 3px rgba(139,92,246,0.3);
-  }
-  .hotel-card-text p { font-size: 10px; color: #9CA3AF; letter-spacing: 0.1em; text-transform: uppercase; }
-  .hotel-card-text strong { font-family: 'Playfair Display', serif; font-size: 14px; color: var(--gold-light); }
-  .hotel-card-text small { display: block; font-size: 10px; color: #9CA3AF; margin-top: 1px; }
-
-  /* Zone sections */
-  .zone-section { border-bottom: 1px solid #F0EDE8; }
-  .zone-header {
-    padding: 9px 18px 7px;
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    background: #FAFAF9;
-    border-bottom: 1px solid #F0EDE8;
-    position: sticky;
-    top: 0;
-    z-index: 2;
-  }
-  .zone-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-  .zone-header h3 {
-    font-size: 9.5px;
-    font-weight: 500;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #6B7280;
-    flex: 1;
-  }
-  .zone-badge {
-    font-size: 9.5px;
-    font-weight: 500;
-    padding: 2px 7px;
-    border-radius: 10px;
-    color: #fff;
-  }
-
-  /* Restaurant rows */
-  .resto-row {
-    padding: 10px 18px;
-    border-bottom: 1px solid #F7F4F0;
-    cursor: pointer;
-    transition: background 0.15s;
-    display: flex;
-    align-items: flex-start;
-    gap: 9px;
-  }
-  .resto-row:hover { background: #F9F7F4; }
-  .resto-row.active {
-    background: #FDF8EE;
-    border-left: 3px solid var(--gold);
-    padding-left: 15px;
-  }
-  .resto-number {
-    width: 19px; height: 19px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 9px; font-weight: 700;
-    color: #fff;
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-  .resto-info { flex: 1; min-width: 0; }
-  .resto-name {
-    font-family: 'Playfair Display', serif;
-    font-size: 13.5px;
-    font-weight: 700;
-    color: var(--ink);
-  }
-  .resto-meta {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    margin-top: 3px;
-    flex-wrap: wrap;
-  }
-  .resto-tag {
-    font-size: 9.5px;
-    padding: 1px 6px;
-    border-radius: 8px;
-    font-weight: 500;
-  }
-  .resto-dist { font-size: 10px; color: #9CA3AF; }
-  .resto-address {
     font-size: 10px;
-    color: #6B7280;
-    margin-top: 3px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
+    color: #9CA3AF;
+    letter-spacing: 0.05em;
+    line-height: 1.5;
   }
-  .resto-address::before {
-    content: '';
-    display: inline-block;
-    width: 8px; height: 8px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%239CA3AF'%3E%3Cpath d='M8 1a5 5 0 0 0-5 5c0 3.5 5 9 5 9s5-5.5 5-9a5 5 0 0 0-5-5zm0 7a2 2 0 1 1 0-4 2 2 0 0 1 0 4z'/%3E%3C/svg%3E");
-    background-size: contain;
-    background-repeat: no-repeat;
-    flex-shrink: 0;
-    opacity: 0.7;
+  .header-address strong {
+    color: var(--gold-light);
+    font-family: 'Playfair Display', serif;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .print-btn {
+    background: transparent;
+    border: 1.5px solid var(--gold);
+    color: var(--gold-light);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+  .print-btn:hover { background: rgba(201,168,76,0.15); }
+  @media print { .print-btn { display: none; } }
+
+  /* ── MAP ── */
+  #map {
+    flex: 1;
+    width: 100%;
+    z-index: 1;
   }
 
-  /* MAP */
-  #map { width: 100%; height: 100%; z-index: 1; }
-
-  /* Leaflet popups */
+  /* ── POPUP ── */
   .leaflet-popup-content-wrapper {
     border-radius: 8px !important;
     border: 1.5px solid var(--gold) !important;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.18) !important;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.22) !important;
     padding: 0 !important;
     overflow: hidden;
   }
-  .leaflet-popup-content { margin: 0 !important; width: 220px !important; }
+  .leaflet-popup-content { margin: 0 !important; width: 230px !important; }
   .leaflet-popup-tip { background: var(--ink) !important; }
-  .popup-inner { padding: 13px 15px; background: var(--ink); color: var(--cream); }
+
+  .popup-inner {
+    padding: 14px 16px;
+    background: var(--ink);
+    color: var(--cream);
+  }
+  .popup-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    font-size: 10px; font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+  }
   .popup-inner h4 {
     font-family: 'Playfair Display', serif;
-    font-size: 14px;
-    margin-bottom: 4px;
+    font-size: 15px;
     color: var(--gold-light);
+    line-height: 1.2;
+    margin-bottom: 3px;
   }
-  .popup-inner .popup-type { font-size: 11px; color: #9CA3AF; }
-  .popup-inner .popup-dist {
-    margin-top: 7px;
-    font-size: 11.5px;
+  .popup-type { font-size: 11px; color: #9CA3AF; }
+  .popup-dist {
+    margin-top: 8px;
+    font-size: 12px;
     font-weight: 500;
+    color: var(--gold-light);
     display: flex;
     align-items: center;
     gap: 5px;
-    color: var(--gold-light);
   }
-  .popup-inner .popup-addr {
-    margin-top: 5px;
+  .popup-addr {
+    margin-top: 4px;
     font-size: 10.5px;
     color: #9CA3AF;
     display: flex;
@@ -241,31 +181,7 @@
     gap: 4px;
     line-height: 1.4;
   }
-
-  /* Legend */
-  .map-legend {
-    position: absolute;
-    bottom: 28px;
-    right: 10px;
-    z-index: 999;
-    background: rgba(26,23,19,0.92);
-    border: 1px solid #3A3530;
-    border-radius: 8px;
-    padding: 11px 13px;
-    color: var(--cream);
-    font-size: 10.5px;
-    backdrop-filter: blur(4px);
-  }
-  .map-legend h4 {
-    font-family: 'Playfair Display', serif;
-    font-size: 11px;
-    color: var(--gold-light);
-    margin-bottom: 7px;
-    letter-spacing: 0.05em;
-  }
-  .legend-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
-  .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .legend-row span { color: #D1CBB8; }
+  .popup-hotel h4 { color: #A78BFA; }
 </style>
 </head>
 <body>
@@ -273,270 +189,98 @@
 <header class="header">
   <div class="header-left">
     <h1>Les Coulisses <em>du Théâtre</em></h1>
-    <p>Restaurant Concierge Guide · Saint-Quentin</p>
+    <span>Restaurant Guide · Saint-Quentin</span>
   </div>
   <div class="header-right">
-    <strong>8 Rue de la Comédie</strong>
-    02100 Saint-Quentin, France<br>
-    +33 3 23 67 90 09
+    <div class="header-address">
+      <strong>8 Rue de la Comédie</strong><br>
+      02100 Saint-Quentin &nbsp;·&nbsp; +33 3 23 67 90 09
+    </div>
   </div>
 </header>
 
-<div class="layout">
-
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-
-    <div class="hotel-card">
-      <div class="hotel-dot"></div>
-      <div class="hotel-card-text">
-        <p>Votre hôtel</p>
-        <strong>Les Coulisses du Théâtre</strong>
-        <small>8 Rue de la Comédie · Point de départ</small>
-      </div>
-    </div>
-
-    <!-- Zone 🔵 Ultra-central -->
-    <div class="zone-section">
-      <div class="zone-header">
-        <div class="zone-dot" style="background:var(--zone-blue)"></div>
-        <h3>Ultra-central</h3>
-        <span class="zone-badge" style="background:var(--zone-blue)">150–200 m · 2–3 min</span>
-      </div>
-      <div class="resto-row" onclick="flyTo(49.8463821,3.2870141,'Le Petit Chef',0)" id="row-0">
-        <div class="resto-number" style="background:var(--zone-blue)">1</div>
-        <div class="resto-info">
-          <div class="resto-name">Le Petit Chef</div>
-          <div class="resto-meta">
-            <span class="resto-tag" style="background:#EFF6FF;color:#1D4ED8">Cuisine française</span>
-            <span class="resto-dist">~150 m</span>
-          </div>
-          <div class="resto-address">33 Place de l'Hôtel de Ville</div>
-        </div>
-      </div>
-      <div class="resto-row" onclick="flyTo(49.846750,3.2881957,'L\'Édito',1)" id="row-1">
-        <div class="resto-number" style="background:var(--zone-blue)">2</div>
-        <div class="resto-info">
-          <div class="resto-name">L'Edito</div>
-          <div class="resto-meta">
-            <span class="resto-tag" style="background:#EFF6FF;color:#1D4ED8">Brasserie</span>
-            <span class="resto-dist">~180 m</span>
-          </div>
-          <div class="resto-address">10 Place de l'Hôtel de Ville</div>
-        </div>
-      </div>
-      <div class="resto-row" onclick="flyTo(49.8458901,3.2878531,'Ô DiVin',2)" id="row-2">
-        <div class="resto-number" style="background:var(--zone-blue)">3</div>
-        <div class="resto-info">
-          <div class="resto-name">Ô DiVin</div>
-          <div class="resto-meta">
-            <span class="resto-tag" style="background:#EFF6FF;color:#1D4ED8">Bar à vins &amp; tapas</span>
-            <span class="resto-dist">~200 m</span>
-          </div>
-          <div class="resto-address">22 Place de l'Hôtel de Ville</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Zone 🟢 Central+ -->
-    <div class="zone-section">
-      <div class="zone-header">
-        <div class="zone-dot" style="background:var(--zone-green)"></div>
-        <h3>Central+</h3>
-        <span class="zone-badge" style="background:var(--zone-green)">150–250 m · 2–4 min</span>
-      </div>
-      <div class="resto-row" onclick="flyTo(49.8466849,3.2894422,'Chez Jean',3)" id="row-3">
-        <div class="resto-number" style="background:var(--zone-green)">4</div>
-        <div class="resto-info">
-          <div class="resto-name">Chez Jean</div>
-          <div class="resto-meta">
-            <span class="resto-tag" style="background:#F0FDF4;color:#15803D">Gastronomie française</span>
-            <span class="resto-dist">~200 m</span>
-          </div>
-          <div class="resto-address">4bis Rue de Lyon</div>
-        </div>
-      </div>
-      <div class="resto-row" onclick="flyTo(49.846934,3.2859423,'Le Bouillon',4)" id="row-4">
-        <div class="resto-number" style="background:var(--zone-green)">5</div>
-        <div class="resto-info">
-          <div class="resto-name">Le Bouillon</div>
-          <div class="resto-meta">
-            <span class="resto-tag" style="background:#F0FDF4;color:#15803D">Bistrot maison</span>
-            <span class="resto-dist">~200 m</span>
-          </div>
-          <div class="resto-address">6 Rue Victor Basch</div>
-        </div>
-      </div>
-      <div class="resto-row" onclick="flyTo(49.8473421,3.2871744,'Le Golden Pub',5)" id="row-5">
-        <div class="resto-number" style="background:var(--zone-green)">6</div>
-        <div class="resto-info">
-          <div class="resto-name">Le Golden Pub</div>
-          <div class="resto-meta">
-            <span class="resto-tag" style="background:#F0FDF4;color:#15803D">Pub &amp; pizzas</span>
-            <span class="resto-dist">~250 m</span>
-          </div>
-          <div class="resto-address">3 Rue Croix Belle Porte</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Zone 🟡 Near-central -->
-    <div class="zone-section">
-      <div class="zone-header">
-        <div class="zone-dot" style="background:var(--zone-yellow)"></div>
-        <h3>Near-central</h3>
-        <span class="zone-badge" style="background:var(--zone-yellow)">300–400 m · 4–5 min</span>
-      </div>
-      <div class="resto-row" onclick="flyTo(49.849591,3.2918057,'Les Champs-Élysées',6)" id="row-6">
-        <div class="resto-number" style="background:var(--zone-yellow)">7</div>
-        <div class="resto-info">
-          <div class="resto-name">Les Champs-Élysées</div>
-          <div class="resto-meta">
-            <span class="resto-tag" style="background:#FEFCE8;color:#854D0E">Cuisine traditionnelle</span>
-            <span class="resto-dist">~380 m</span>
-          </div>
-          <div class="resto-address">68 Rue de Baudreuil</div>
-        </div>
-      </div>
-      <div class="resto-row" onclick="flyTo(49.8457855,3.2904155,'Umami',7)" id="row-7">
-        <div class="resto-number" style="background:var(--zone-yellow)">8</div>
-        <div class="resto-info">
-          <div class="resto-name">Umami</div>
-          <div class="resto-meta">
-            <span class="resto-tag" style="background:#FEFCE8;color:#854D0E">Restaurant japonais</span>
-            <span class="resto-dist">~320 m</span>
-          </div>
-          <div class="resto-address">6 Rue de la Sous-Préfecture</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Zone 🔴 Extended -->
-    <div class="zone-section">
-      <div class="zone-header">
-        <div class="zone-dot" style="background:var(--zone-red)"></div>
-        <h3>Extended</h3>
-        <span class="zone-badge" style="background:var(--zone-red)">700 m–1 km · 8–12 min</span>
-      </div>
-      <div class="resto-row" onclick="flyTo(49.846683,3.2947789,'La Maison S&amp;L',8)" id="row-8">
-        <div class="resto-number" style="background:var(--zone-red)">9</div>
-        <div class="resto-info">
-          <div class="resto-name">La Maison S&amp;L</div>
-          <div class="resto-meta">
-            <span class="resto-tag" style="background:#FFF1F2;color:#9F1239">Gastronomique</span>
-            <span class="resto-dist">~700 m</span>
-          </div>
-          <div class="resto-address">132 Rue de Baudreuil</div>
-        </div>
-      </div>
-      <div class="resto-row" onclick="flyTo(49.8427006,3.2948394,'Le Huit',9)" id="row-9">
-        <div class="resto-number" style="background:var(--zone-red)">10</div>
-        <div class="resto-info">
-          <div class="resto-name">Le Huit</div>
-          <div class="resto-meta">
-            <span class="resto-tag" style="background:#FFF1F2;color:#9F1239">Restaurant gastronomique</span>
-            <span class="resto-dist">~900 m</span>
-          </div>
-          <div class="resto-address">3 Place du Huit Octobre</div>
-        </div>
-      </div>
-      <div class="resto-row" onclick="flyTo(49.8432579,3.293329,'Villa d\'Isle',10)" id="row-10">
-        <div class="resto-number" style="background:var(--zone-red)">11</div>
-        <div class="resto-info">
-          <div class="resto-name">Villa d'Isle</div>
-          <div class="resto-meta">
-            <span class="resto-tag" style="background:#FFF1F2;color:#9F1239">Restaurant français</span>
-            <span class="resto-dist">~850 m</span>
-          </div>
-          <div class="resto-address">113 Rue d'Isle</div>
-        </div>
-      </div>
-    </div>
-
-
-  </aside>
-
-  <!-- MAP -->
-  <div style="position:relative; flex:1;">
-    <div id="map"></div>
-    <div class="map-legend">
-      <h4>Légende</h4>
-      <div class="legend-row"><div class="legend-dot" style="background:#8B5CF6"></div><span>Hôtel (départ)</span></div>
-      <div class="legend-row"><div class="legend-dot" style="background:var(--zone-blue)"></div><span>🔵 Ultra-central</span></div>
-      <div class="legend-row"><div class="legend-dot" style="background:var(--zone-green)"></div><span>🟢 Central+</span></div>
-      <div class="legend-row"><div class="legend-dot" style="background:var(--zone-yellow)"></div><span>🟡 Near-central</span></div>
-      <div class="legend-row"><div class="legend-dot" style="background:var(--zone-red)"></div><span>🔴 Extended</span></div>
-    </div>
-  </div>
-
-</div>
+<div id="map"></div>
 
 <script>
-const map = L.map('map', { center: [49.8467, 3.2875], zoom: 16, zoomControl: true });
+/* Rue de la Comédie runs at ~72° bearing — rotate map 18° clockwise
+   so the street appears perfectly horizontal on screen */
+const BEARING = -22;
+
+const map = L.map('map', {
+  center: [49.8455, 3.2903],
+  zoom: 16,
+  rotate: true,
+  bearing: BEARING,
+  touchRotate: false,
+  rotateControl: false,
+});
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
   maxZoom: 19
 }).addTo(map);
 
+/* ── Marker helpers ── */
 function circleMarker(color, label) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">
-    <circle cx="16" cy="16" r="13" fill="${color}" stroke="white" stroke-width="2.5"/>
-    <text x="16" y="21" text-anchor="middle" fill="white" font-size="10" font-family="DM Sans,sans-serif" font-weight="700">${label}</text>
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34">
+    <circle cx="17" cy="17" r="14" fill="${color}" stroke="white" stroke-width="2.5"/>
+    <text x="17" y="22" text-anchor="middle" fill="white" font-size="11"
+          font-family="DM Sans,sans-serif" font-weight="700">${label}</text>
   </svg>`;
-  return L.divIcon({ html: svg, className: '', iconSize: [32,32], iconAnchor: [16,16], popupAnchor: [0,-16] });
+  return L.divIcon({ html: svg, className: '', iconSize: [34,34], iconAnchor: [17,17], popupAnchor: [0,-17] });
 }
 
-function hotelMarker() {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="30">
-    <ellipse cx="12" cy="27" rx="5" ry="3" fill="rgba(0,0,0,0.2)"/>
-    <path d="M12 1 C6 1 2 6 2 11 C2 19 12 27 12 27 C12 27 22 19 22 11 C22 6 18 1 12 1 Z" fill="#8B5CF6" stroke="white" stroke-width="2"/>
-    <text x="12" y="19" text-anchor="middle" fill="white" font-size="7" font-family="DM Sans,sans-serif" font-weight="700">H</text>
+/* ── No hotel marker ── */
+
+function entranceIcon() {
+  /* Simple purple hotel pin matching the original style */
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="32" viewBox="0 0 26 32">
+    <ellipse cx="13" cy="30" rx="5" ry="3" fill="rgba(0,0,0,0.2)"/>
+    <path d="M13 1 C7 1 3 7 3 12 C3 21 13 30 13 30 C13 30 23 21 23 12 C23 7 19 1 13 1Z"
+          fill="#8B5CF6" stroke="white" stroke-width="2"/>
+    <text x="13" y="15.5" text-anchor="middle" fill="white" font-size="9"
+          font-family="DM Sans,sans-serif" font-weight="700">H</text>
   </svg>`;
-  return L.divIcon({ html: svg, className: '', iconSize: [24,30], iconAnchor: [24,27], popupAnchor: [-12,-27] });
+  return L.divIcon({ html: svg, className: '', iconSize: [26,32], iconAnchor: [13,30], popupAnchor: [0,-30] });
 }
 
-const HOTEL = { lat: 49.846241, lng: 3.286334 };
+/* ── Hotel marker — exact GPS from hotel website ── */
+L.marker([49.846108, 3.286268], { icon: entranceIcon() }).addTo(map)
+  .bindPopup(`
+    <div class="popup-inner popup-hotel">
+      <h4>🏨 Les Coulisses du Théâtre</h4>
+      <p class="popup-type">8 Rue de la Comédie, 02100 Saint-Quentin</p>
+      <div class="popup-dist" style="color:#A78BFA">📍 Votre point de départ</div>
+    </div>`);
 
+/* ── Restaurants ── */
 const restaurants = [
-  { lat:49.8463821, lng:3.2870141, name:"Le Petit Chef",      color:"#3B82F6", dist:"~150 m · 2 min",  type:"Cuisine française",       addr:"33 Place de l'Hôtel de Ville" },
-  { lat:49.846750,  lng:3.2881957, name:"L'Edito",            color:"#3B82F6", dist:"~180 m · 2 min",  type:"Brasserie",               addr:"10 Place de l'Hôtel de Ville" },
-  { lat:49.8458901, lng:3.2878531, name:"Ô DiVin",            color:"#3B82F6", dist:"~200 m · 3 min",  type:"Bar à vins & tapas",      addr:"22 Place de l'Hôtel de Ville" },
-  { lat:49.8466849, lng:3.2894422, name:"Chez Jean",          color:"#22C55E", dist:"~200 m · 3 min",  type:"Gastronomie française",   addr:"4bis Rue de Lyon" },
-  { lat:49.846934,  lng:3.2859423, name:"Le Bouillon",        color:"#22C55E", dist:"~200 m · 3 min",  type:"Bistrot maison",          addr:"6 Rue Victor Basch" },
-  { lat:49.8473421, lng:3.2871744, name:"Le Golden Pub",      color:"#22C55E", dist:"~250 m · 4 min",  type:"Pub & pizzas",            addr:"3 Rue Croix Belle Porte" },
-  { lat:49.849591,  lng:3.2918057, name:"Les Champs-Élysées", color:"#EAB308", dist:"~380 m · 5 min",  type:"Cuisine traditionnelle",  addr:"68 Rue de Baudreuil" },
-  { lat:49.8457855, lng:3.2904155, name:"Umami",              color:"#EAB308", dist:"~320 m · 4 min",  type:"Restaurant japonais",     addr:"6 Rue de la Sous-Préfecture" },
-  { lat:49.846683,  lng:3.2947789, name:"La Maison S&L",      color:"#EF4444", dist:"~700 m · 9 min",  type:"Gastronomique",           addr:"132 Rue de Baudreuil" },
-  { lat:49.8427006, lng:3.2948394, name:"Le Huit",            color:"#EF4444", dist:"~900 m · 11 min", type:"Restaurant gastronomique",addr:"3 Place du Huit Octobre" },
-  { lat:49.8432579, lng:3.293329,  name:"Villa d'Isle",       color:"#EF4444", dist:"~850 m · 10 min", type:"Restaurant français",     addr:"113 Rue d'Isle" },
+  { lat:49.8463821, lng:3.2870141, name:"Le Petit Chef",      color:"#3B82F6", dist:"~150 m · 2 min",  type:"Cuisine française",        addr:"33 Place de l'Hôtel de Ville" },
+  { lat:49.846750,  lng:3.2881957, name:"L'Edito",            color:"#3B82F6", dist:"~180 m · 2 min",  type:"Brasserie",                addr:"10 Place de l'Hôtel de Ville" },
+  { lat:49.8458901, lng:3.2878531, name:"Ô DiVin",            color:"#3B82F6", dist:"~200 m · 3 min",  type:"Bar à vins & tapas",       addr:"22 Place de l'Hôtel de Ville" },
+  { lat:49.8461223, lng:3.2845714, name:"Chez Mario",         color:"#22C55E", dist:"~120 m · 2 min",  type:"Restaurant italien",       addr:"1 Rue Renan" },
+  { lat:49.8473421, lng:3.2871744, name:"Le Golden Pub",      color:"#22C55E", dist:"~250 m · 4 min",  type:"Pub & pizzas",             addr:"3 Rue Croix Belle Porte" },
+  { lat:49.8466849, lng:3.2894422, name:"Chez Jean",          color:"#22C55E", dist:"~200 m · 3 min",  type:"Gastronomie française",    addr:"4bis Rue de Lyon" },
+  { lat:49.849591,  lng:3.2918057, name:"Les Champs-Élysées", color:"#EAB308", dist:"~380 m · 5 min",  type:"Cuisine traditionnelle",   addr:"68 Rue de Baudreuil" },
+  { lat:49.8457855, lng:3.2904155, name:"Umami",              color:"#EAB308", dist:"~320 m · 4 min",  type:"Restaurant japonais",      addr:"6 Rue de la Sous-Préfecture" },
+  { lat:49.846683,  lng:3.2947789, name:"La Maison S&L",      color:"#EF4444", dist:"~700 m · 9 min",  type:"Gastronomique",            addr:"132 Rue de Baudreuil" },
+  { lat:49.8427006, lng:3.2948394, name:"Le Huit",            color:"#EF4444", dist:"~900 m · 11 min", type:"Restaurant gastronomique", addr:"3 Place du Huit Octobre" },
+  { lat:49.8432579, lng:3.293329,  name:"Villa d'Isle",       color:"#EF4444", dist:"~850 m · 10 min", type:"Restaurant français",      addr:"113 Rue d'Isle" },
 ];
 
-L.marker([HOTEL.lat, HOTEL.lng], { icon: hotelMarker() }).addTo(map)
-  .bindPopup(`<div class="popup-inner"><h4>🏨 Les Coulisses du Théâtre</h4><p class="popup-type">8 Rue de la Comédie, 02100 Saint-Quentin</p><div class="popup-dist" style="color:#A78BFA">📍 Votre point de départ</div></div>`);
-
-const markers = [];
 restaurants.forEach((r, i) => {
-  const m = L.marker([r.lat, r.lng], { icon: circleMarker(r.color, i+1) }).addTo(map);
-  m.bindPopup(`
-    <div class="popup-inner">
-      <h4>${i+1}. ${r.name}</h4>
-      <p class="popup-type">${r.type}</p>
-      <div class="popup-dist" style="color:#C9A84C">📍 ${r.dist} à pied</div>
-      <div class="popup-addr">📌 ${r.addr}</div>
-    </div>`);
-  markers.push(m);
+  const num = i + 1;
+  L.marker([r.lat, r.lng], { icon: circleMarker(r.color, num) })
+    .addTo(map)
+    .bindPopup(`
+      <div class="popup-inner">
+        <span class="popup-num" style="background:${r.color}">${num}</span>
+        <h4>${r.name}</h4>
+        <p class="popup-type">${r.type}</p>
+        <div class="popup-dist">📍 ${r.dist} à pied</div>
+        <div class="popup-addr">📌 ${r.addr}</div>
+      </div>`);
 });
-
-let activeRow = null;
-function flyTo(lat, lng, name, idx) {
-  map.flyTo([lat, lng], 17, { duration: 0.8 });
-  markers[idx].openPopup();
-  if (activeRow !== null) document.getElementById('row-'+activeRow)?.classList.remove('active');
-  document.getElementById('row-'+idx)?.classList.add('active');
-  activeRow = idx;
-}
 </script>
 </body>
 </html>
-
